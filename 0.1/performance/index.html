@@ -412,6 +412,66 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#library-level-benchmark-go-api-vs-runtimes-2026-07-03" class="md-nav__link">
+    <span class="md-ellipsis">
+      Library-level benchmark (Go API vs runtimes) — 2026-07-03
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Library-level benchmark (Go API vs runtimes) — 2026-07-03">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parse-cgiparse-query-string-key-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      parse — CGI.parse, query string → {key =&gt; [values]}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#escape-cgiescape-form-url-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      escape — CGI.escape, form-URL encoding
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unescape-cgiunescape-form-url-decoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      unescape — CGI.unescape, form-URL decoding
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#escapehtml-cgiescapehtml-five-character-entity-escape" class="md-nav__link">
+    <span class="md-ellipsis">
+      escapeHTML — CGI.escapeHTML, five-character entity escape
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unescapehtml-cgiunescapehtml-named-numeric-entity-decode" class="md-nav__link">
+    <span class="md-ellipsis">
+      unescapeHTML — CGI.unescapeHTML, named + numeric entity decode
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -481,6 +541,66 @@
       Result (best of 5, ms)
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#library-level-benchmark-go-api-vs-runtimes-2026-07-03" class="md-nav__link">
+    <span class="md-ellipsis">
+      Library-level benchmark (Go API vs runtimes) — 2026-07-03
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Library-level benchmark (Go API vs runtimes) — 2026-07-03">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parse-cgiparse-query-string-key-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      parse — CGI.parse, query string → {key =&gt; [values]}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#escape-cgiescape-form-url-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      escape — CGI.escape, form-URL encoding
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unescape-cgiunescape-form-url-decoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      unescape — CGI.unescape, form-URL decoding
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#escapehtml-cgiescapehtml-five-character-entity-escape" class="md-nav__link">
+    <span class="md-ellipsis">
+      escapeHTML — CGI.escapeHTML, five-character entity escape
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unescapehtml-cgiunescapehtml-named-numeric-entity-decode" class="md-nav__link">
+    <span class="md-ellipsis">
+      unescapeHTML — CGI.unescapeHTML, named + numeric entity decode
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -570,6 +690,257 @@ that complete in well under ~200 ms carry the most relative noise; treat
 their ratios as order-of-magnitude. These are <strong>real measured numbers</strong> from
 the 2026-06-30 run (Apple M-series; <code>ruby 4.0.5 +PRISM</code>, <code>jruby 10.1.0.0</code>,
 <code>truffleruby 34.0.1</code>) — nothing is fabricated or cherry-picked.</p>
+</div>
+<h2 id="library-level-benchmark-go-api-vs-runtimes-2026-07-03">Library-level benchmark (Go API vs runtimes) — 2026-07-03<a class="headerlink" href="#library-level-benchmark-go-api-vs-runtimes-2026-07-03" title="Permanent link">&para;</a></h2>
+<p>This section measures the <strong>pure-Go library directly, through its Go API</strong> — not
+the <code>rbgo</code> interpreter path recorded above. It isolates the library primitive
+from Ruby-interpreter dispatch, answering the parity question head-on: <em>is the
+pure-Go implementation as fast as the reference runtime's own <code>cgi</code>?</em> The <strong>same
+workload, same fixed inputs, same iteration counts</strong> run through the Go library
+and through each reference runtime's stdlib; every op's output was checked
+<strong>byte-identical to MRI</strong> (the run aborts on any mismatch) before any timing.</p>
+<ul>
+<li><strong>Host:</strong> Apple M4 Max (<code>Mac16,5</code>, arm64), macOS 26.5 — <strong>date 2026-07-03</strong>.</li>
+<li><strong>Runtimes:</strong> Go 1.26.4 · MRI <code>ruby 4.0.5 +PRISM</code> · MRI + YJIT · JRuby 10.1.0.0
+  (OpenJDK 25) · TruffleRuby 34.0.1 (GraalVM CE Native).</li>
+<li><strong>Method:</strong> each process runs 3 untimed warm-up passes, then 25 timed passes of
+  a fixed inner loop, timed with a monotonic clock; the <strong>best</strong> pass is reported
+  as <strong>ns/op</strong> (lower is better). <code>vs MRI</code> &lt; 1.00× means <em>faster than MRI</em>.
+  Interpreter start-up is outside the timed region, so these are operation costs,
+  not <code>ruby file.rb</code> process costs.</li>
+<li><strong>Inputs (fixed, byte-identical across drivers):</strong> a realistic UTF-8 form value
+  for <code>escape</code>/<code>unescape</code>; an HTML fragment exercising all five escaped
+  characters for <code>escapeHTML</code>; a mixed named/decimal/hex-entity fragment for
+  <code>unescapeHTML</code>; and a query string with repeated (array) keys and <code>%</code>/<code>+</code>
+  values for <code>parse</code>.</li>
+</ul>
+<p><strong>go-vs-YJIT verdict:</strong> the pure-Go library <strong>beats MRI + YJIT on three of the
+five ops</strong> — <code>escape</code> (~0.58× YJIT), <code>unescape</code> (~0.34× YJIT) and <code>parse</code>
+(~0.15× YJIT, i.e. ~6–7× faster). It <strong>loses the two HTML-escape ops to YJIT</strong>:
+<code>escapeHTML</code> (~1.5× YJIT) and <code>unescapeHTML</code> (~1.05× YJIT, a near-tie). Those two
+are exactly where MRI/YJIT call the <code>cgi/escape</code> <strong>C extension</strong> (<code>escape_html</code>),
+a tight table-driven native path that the Go <code>strings.NewReplacer</code> cannot yet
+match; they are this module's remaining optimization targets.</p>
+<h4 id="parse-cgiparse-query-string-key-values">parse — <code>CGI.parse</code>, query string → <code>{key =&gt; [values]}</code><a class="headerlink" href="#parse-cgiparse-query-string-key-values" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Runtime</th>
+<th style="text-align: right;">ns/op</th>
+<th style="text-align: right;">vs MRI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>go-ruby (pure Go)</strong></td>
+<td style="text-align: right;">786.0</td>
+<td style="text-align: right;">0.14×</td>
+</tr>
+<tr>
+<td>MRI</td>
+<td style="text-align: right;">5813.5</td>
+<td style="text-align: right;">1.00×</td>
+</tr>
+<tr>
+<td>MRI + YJIT</td>
+<td style="text-align: right;">5223.5</td>
+<td style="text-align: right;">0.90×</td>
+</tr>
+<tr>
+<td>TruffleRuby</td>
+<td style="text-align: right;">14249.2</td>
+<td style="text-align: right;">2.45×</td>
+</tr>
+</tbody>
+</table>
+<p><code>ParseQuery</code> is the standout: <strong>~7× faster than MRI and ~6.6× faster than YJIT</strong>
+(786.0 / 5223.5 = <strong>0.15× YJIT</strong>). MRI's <code>CGI.parse</code> is pure Ruby (regex split +
+per-pair <code>CGI.unescape</code>), so the compiled Go map-building path dominates it.
+JRuby 10.1 removed <code>CGI.parse</code> from its stdlib (it now directs callers to the
+<code>cgi</code> gem), so JRuby has no row here — the harness omits it rather than
+substitute a non-stdlib implementation.</p>
+<h4 id="escape-cgiescape-form-url-encoding">escape — <code>CGI.escape</code>, form-URL encoding<a class="headerlink" href="#escape-cgiescape-form-url-encoding" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Runtime</th>
+<th style="text-align: right;">ns/op</th>
+<th style="text-align: right;">vs MRI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>go-ruby (pure Go)</strong></td>
+<td style="text-align: right;">246.8</td>
+<td style="text-align: right;">0.56×</td>
+</tr>
+<tr>
+<td>MRI</td>
+<td style="text-align: right;">444.6</td>
+<td style="text-align: right;">1.00×</td>
+</tr>
+<tr>
+<td>MRI + YJIT</td>
+<td style="text-align: right;">428.4</td>
+<td style="text-align: right;">0.96×</td>
+</tr>
+<tr>
+<td>JRuby</td>
+<td style="text-align: right;">460.1</td>
+<td style="text-align: right;">1.03×</td>
+</tr>
+<tr>
+<td>TruffleRuby</td>
+<td style="text-align: right;">26123.8</td>
+<td style="text-align: right;">58.76×</td>
+</tr>
+</tbody>
+</table>
+<p>Percent-encoding <strong>beats MRI (0.56×) and YJIT (246.8 / 428.4 = 0.58× YJIT)</strong>. The
+lone TruffleRuby outlier (26 µs) is a cold-JIT artifact on this short loop — read
+it as order-of-magnitude, per the warm-up caveat below.</p>
+<h4 id="unescape-cgiunescape-form-url-decoding">unescape — <code>CGI.unescape</code>, form-URL decoding<a class="headerlink" href="#unescape-cgiunescape-form-url-decoding" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Runtime</th>
+<th style="text-align: right;">ns/op</th>
+<th style="text-align: right;">vs MRI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>go-ruby (pure Go)</strong></td>
+<td style="text-align: right;">154.9</td>
+<td style="text-align: right;">0.32×</td>
+</tr>
+<tr>
+<td>MRI</td>
+<td style="text-align: right;">488.6</td>
+<td style="text-align: right;">1.00×</td>
+</tr>
+<tr>
+<td>MRI + YJIT</td>
+<td style="text-align: right;">452.6</td>
+<td style="text-align: right;">0.93×</td>
+</tr>
+<tr>
+<td>JRuby</td>
+<td style="text-align: right;">363.8</td>
+<td style="text-align: right;">0.74×</td>
+</tr>
+<tr>
+<td>TruffleRuby</td>
+<td style="text-align: right;">3284.4</td>
+<td style="text-align: right;">6.72×</td>
+</tr>
+</tbody>
+</table>
+<p>Decoding <strong>beats MRI (0.32×) and YJIT (154.9 / 452.6 = 0.34× YJIT)</strong> — roughly 3×
+faster than both.</p>
+<h4 id="escapehtml-cgiescapehtml-five-character-entity-escape">escapeHTML — <code>CGI.escapeHTML</code>, five-character entity escape<a class="headerlink" href="#escapehtml-cgiescapehtml-five-character-entity-escape" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Runtime</th>
+<th style="text-align: right;">ns/op</th>
+<th style="text-align: right;">vs MRI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>go-ruby (pure Go)</strong></td>
+<td style="text-align: right;">177.3</td>
+<td style="text-align: right;">1.20×</td>
+</tr>
+<tr>
+<td>MRI</td>
+<td style="text-align: right;">148.0</td>
+<td style="text-align: right;">1.00×</td>
+</tr>
+<tr>
+<td>MRI + YJIT</td>
+<td style="text-align: right;">116.4</td>
+<td style="text-align: right;">0.79×</td>
+</tr>
+<tr>
+<td>JRuby</td>
+<td style="text-align: right;">245.0</td>
+<td style="text-align: right;">1.66×</td>
+</tr>
+<tr>
+<td>TruffleRuby</td>
+<td style="text-align: right;">1386.4</td>
+<td style="text-align: right;">9.37×</td>
+</tr>
+</tbody>
+</table>
+<p>The one clear loss: <strong>1.20× MRI and 177.3 / 116.4 = 1.52× YJIT</strong>. MRI's
+<code>CGI.escapeHTML</code> is the C <code>escape_html</code> extension — a native table scan the Go
+<code>strings.NewReplacer</code> does not beat. This is the module's top optimization
+target (a byte-class table + single-pass builder would close it).</p>
+<h4 id="unescapehtml-cgiunescapehtml-named-numeric-entity-decode">unescapeHTML — <code>CGI.unescapeHTML</code>, named + numeric entity decode<a class="headerlink" href="#unescapehtml-cgiunescapehtml-named-numeric-entity-decode" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Runtime</th>
+<th style="text-align: right;">ns/op</th>
+<th style="text-align: right;">vs MRI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>go-ruby (pure Go)</strong></td>
+<td style="text-align: right;">242.4</td>
+<td style="text-align: right;">0.92×</td>
+</tr>
+<tr>
+<td>MRI</td>
+<td style="text-align: right;">262.8</td>
+<td style="text-align: right;">1.00×</td>
+</tr>
+<tr>
+<td>MRI + YJIT</td>
+<td style="text-align: right;">231.4</td>
+<td style="text-align: right;">0.88×</td>
+</tr>
+<tr>
+<td>JRuby</td>
+<td style="text-align: right;">219.4</td>
+<td style="text-align: right;">0.83×</td>
+</tr>
+<tr>
+<td>TruffleRuby</td>
+<td style="text-align: right;">2659.1</td>
+<td style="text-align: right;">10.12×</td>
+</tr>
+</tbody>
+</table>
+<p>A near-tie: the Go decoder <strong>beats MRI (0.92×)</strong> but sits <strong>just behind YJIT</strong>
+(242.4 / 231.4 = <strong>1.05× YJIT</strong>) and JRuby, which run the C <code>unescapeHTML</code> path.
+The gap is within run-to-run noise (~5%); a small tightening of the entity scan
+would flip it.</p>
+<div class="admonition note">
+<p class="admonition-title">Reproduce</p>
+<p>The harness is committed under
+<a href="https://github.com/go-ruby-cgi/docs/tree/main/benchmarks"><code>benchmarks/</code></a>: a
+self-contained Go driver (<code>go/</code>, pins the published library via <code>go.mod</code>
+pseudo-version — no <code>replace</code>), the equivalent <code>ruby/cgi.rb</code> workload, and
+<code>run.sh</code> (which first verifies Go output is byte-identical to MRI, then times
+every runtime). Run <code>bash benchmarks/run.sh</code>; env <code>OUTER</code>/<code>WARM</code> tune the
+pass budget and <code>RUBY</code>/<code>JRUBY</code>/<code>TRUFFLERUBY</code> select the runtime binaries.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warm-up budget &amp; noise — honest framing</p>
+<p>Numbers reflect a <strong>fixed warm-process budget</strong> (3 warm-up + 25 timed passes
+in one process). The JVM/GraalVM JITs (JRuby, TruffleRuby) may need a larger
+warm-up to reach steady state, so their columns can <strong>understate</strong> peak
+throughput — most visibly TruffleRuby on the shortest loops (the <code>escape</code>
+row's 26 µs is one such cold-JIT outlier). Sub-microsecond rows carry the most
+relative noise; treat those ratios as order-of-magnitude. Every number here is
+a <strong>real measured value</strong> from the dated run above — nothing is fabricated,
+estimated, or cherry-picked. The go-ruby column is the pure-Go library; every
+other column is that interpreter's own stdlib doing the equivalent work.</p>
 </div>
 
 
