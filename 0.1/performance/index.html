@@ -467,6 +467,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#the-html-escaper-rewrite-how-go-overtakes-the-c-extension" class="md-nav__link">
+    <span class="md-ellipsis">
+      The HTML-escaper rewrite — how Go overtakes the C extension
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -599,6 +608,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#the-html-escaper-rewrite-how-go-overtakes-the-c-extension" class="md-nav__link">
+    <span class="md-ellipsis">
+      The HTML-escaper rewrite — how Go overtakes the C extension
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -714,13 +732,15 @@ and through each reference runtime's stdlib; every op's output was checked
   <code>unescapeHTML</code>; and a query string with repeated (array) keys and <code>%</code>/<code>+</code>
   values for <code>parse</code>.</li>
 </ul>
-<p><strong>go-vs-YJIT verdict:</strong> the pure-Go library <strong>beats MRI + YJIT on three of the
-five ops</strong> — <code>escape</code> (~0.58× YJIT), <code>unescape</code> (~0.34× YJIT) and <code>parse</code>
-(~0.15× YJIT, i.e. ~6–7× faster). It <strong>loses the two HTML-escape ops to YJIT</strong>:
-<code>escapeHTML</code> (~1.5× YJIT) and <code>unescapeHTML</code> (~1.05× YJIT, a near-tie). Those two
-are exactly where MRI/YJIT call the <code>cgi/escape</code> <strong>C extension</strong> (<code>escape_html</code>),
-a tight table-driven native path that the Go <code>strings.NewReplacer</code> cannot yet
-match; they are this module's remaining optimization targets.</p>
+<p><strong>go-vs-YJIT verdict:</strong> the pure-Go library now <strong>beats MRI + YJIT on all five
+ops.</strong> The URL ops were already ahead — <code>escape</code> (~0.61× YJIT), <code>unescape</code>
+(~0.29× YJIT) and <code>parse</code> (~0.15× YJIT, i.e. ~6–7× faster). The two HTML-escape
+ops used to lose to YJIT (they are exactly where MRI/YJIT dispatch to the
+<code>cgi/escape</code> <strong>C extension</strong>); rewriting them as <strong>single-pass, table-driven
+scanners</strong> that mirror the C path flipped both: <code>escapeHTML</code> went from 1.52× to
+<strong>0.93× YJIT</strong> and <code>unescapeHTML</code> from 1.05× to <strong>0.85× YJIT</strong>. See
+<a href="#the-html-escaper-rewrite-how-go-overtakes-the-c-extension">HTML-escaper design</a>
+below for how.</p>
 <h4 id="parse-cgiparse-query-string-key-values">parse — <code>CGI.parse</code>, query string → <code>{key =&gt; [values]}</code><a class="headerlink" href="#parse-cgiparse-query-string-key-values" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -733,28 +753,28 @@ match; they are this module's remaining optimization targets.</p>
 <tbody>
 <tr>
 <td><strong>go-ruby (pure Go)</strong></td>
-<td style="text-align: right;">786.0</td>
-<td style="text-align: right;">0.14×</td>
+<td style="text-align: right;">771.0</td>
+<td style="text-align: right;">0.13×</td>
 </tr>
 <tr>
 <td>MRI</td>
-<td style="text-align: right;">5813.5</td>
+<td style="text-align: right;">5928.0</td>
 <td style="text-align: right;">1.00×</td>
 </tr>
 <tr>
 <td>MRI + YJIT</td>
-<td style="text-align: right;">5223.5</td>
-<td style="text-align: right;">0.90×</td>
+<td style="text-align: right;">5110.5</td>
+<td style="text-align: right;">0.86×</td>
 </tr>
 <tr>
 <td>TruffleRuby</td>
-<td style="text-align: right;">14249.2</td>
-<td style="text-align: right;">2.45×</td>
+<td style="text-align: right;">7345.5</td>
+<td style="text-align: right;">1.24×</td>
 </tr>
 </tbody>
 </table>
-<p><code>ParseQuery</code> is the standout: <strong>~7× faster than MRI and ~6.6× faster than YJIT</strong>
-(786.0 / 5223.5 = <strong>0.15× YJIT</strong>). MRI's <code>CGI.parse</code> is pure Ruby (regex split +
+<p><code>ParseQuery</code> is the standout: <strong>~7.7× faster than MRI and ~6.6× faster than YJIT</strong>
+(771.0 / 5110.5 = <strong>0.15× YJIT</strong>). MRI's <code>CGI.parse</code> is pure Ruby (regex split +
 per-pair <code>CGI.unescape</code>), so the compiled Go map-building path dominates it.
 JRuby 10.1 removed <code>CGI.parse</code> from its stdlib (it now directs callers to the
 <code>cgi</code> gem), so JRuby has no row here — the harness omits it rather than
@@ -771,32 +791,32 @@ substitute a non-stdlib implementation.</p>
 <tbody>
 <tr>
 <td><strong>go-ruby (pure Go)</strong></td>
-<td style="text-align: right;">246.8</td>
+<td style="text-align: right;">244.4</td>
 <td style="text-align: right;">0.56×</td>
 </tr>
 <tr>
 <td>MRI</td>
-<td style="text-align: right;">444.6</td>
+<td style="text-align: right;">433.2</td>
 <td style="text-align: right;">1.00×</td>
 </tr>
 <tr>
 <td>MRI + YJIT</td>
-<td style="text-align: right;">428.4</td>
-<td style="text-align: right;">0.96×</td>
+<td style="text-align: right;">398.2</td>
+<td style="text-align: right;">0.92×</td>
 </tr>
 <tr>
 <td>JRuby</td>
-<td style="text-align: right;">460.1</td>
-<td style="text-align: right;">1.03×</td>
+<td style="text-align: right;">362.0</td>
+<td style="text-align: right;">0.84×</td>
 </tr>
 <tr>
 <td>TruffleRuby</td>
-<td style="text-align: right;">26123.8</td>
-<td style="text-align: right;">58.76×</td>
+<td style="text-align: right;">25169.3</td>
+<td style="text-align: right;">58.10×</td>
 </tr>
 </tbody>
 </table>
-<p>Percent-encoding <strong>beats MRI (0.56×) and YJIT (246.8 / 428.4 = 0.58× YJIT)</strong>. The
+<p>Percent-encoding <strong>beats MRI (0.56×) and YJIT (244.4 / 398.2 = 0.61× YJIT)</strong>. The
 lone TruffleRuby outlier (26 µs) is a cold-JIT artifact on this short loop — read
 it as order-of-magnitude, per the warm-up caveat below.</p>
 <h4 id="unescape-cgiunescape-form-url-decoding">unescape — <code>CGI.unescape</code>, form-URL decoding<a class="headerlink" href="#unescape-cgiunescape-form-url-decoding" title="Permanent link">&para;</a></h4>
@@ -811,32 +831,32 @@ it as order-of-magnitude, per the warm-up caveat below.</p>
 <tbody>
 <tr>
 <td><strong>go-ruby (pure Go)</strong></td>
-<td style="text-align: right;">154.9</td>
-<td style="text-align: right;">0.32×</td>
+<td style="text-align: right;">132.4</td>
+<td style="text-align: right;">0.27×</td>
 </tr>
 <tr>
 <td>MRI</td>
-<td style="text-align: right;">488.6</td>
+<td style="text-align: right;">492.8</td>
 <td style="text-align: right;">1.00×</td>
 </tr>
 <tr>
 <td>MRI + YJIT</td>
-<td style="text-align: right;">452.6</td>
+<td style="text-align: right;">457.8</td>
 <td style="text-align: right;">0.93×</td>
 </tr>
 <tr>
 <td>JRuby</td>
-<td style="text-align: right;">363.8</td>
-<td style="text-align: right;">0.74×</td>
+<td style="text-align: right;">362.1</td>
+<td style="text-align: right;">0.73×</td>
 </tr>
 <tr>
 <td>TruffleRuby</td>
-<td style="text-align: right;">3284.4</td>
-<td style="text-align: right;">6.72×</td>
+<td style="text-align: right;">2920.6</td>
+<td style="text-align: right;">5.93×</td>
 </tr>
 </tbody>
 </table>
-<p>Decoding <strong>beats MRI (0.32×) and YJIT (154.9 / 452.6 = 0.34× YJIT)</strong> — roughly 3×
+<p>Decoding <strong>beats MRI (0.27×) and YJIT (132.4 / 457.8 = 0.29× YJIT)</strong> — roughly 3.5×
 faster than both.</p>
 <h4 id="escapehtml-cgiescapehtml-five-character-entity-escape">escapeHTML — <code>CGI.escapeHTML</code>, five-character entity escape<a class="headerlink" href="#escapehtml-cgiescapehtml-five-character-entity-escape" title="Permanent link">&para;</a></h4>
 <table>
@@ -850,35 +870,38 @@ faster than both.</p>
 <tbody>
 <tr>
 <td><strong>go-ruby (pure Go)</strong></td>
-<td style="text-align: right;">177.3</td>
-<td style="text-align: right;">1.20×</td>
+<td style="text-align: right;">107.3</td>
+<td style="text-align: right;">0.72×</td>
 </tr>
 <tr>
 <td>MRI</td>
-<td style="text-align: right;">148.0</td>
+<td style="text-align: right;">148.2</td>
 <td style="text-align: right;">1.00×</td>
 </tr>
 <tr>
 <td>MRI + YJIT</td>
-<td style="text-align: right;">116.4</td>
-<td style="text-align: right;">0.79×</td>
+<td style="text-align: right;">116.0</td>
+<td style="text-align: right;">0.78×</td>
 </tr>
 <tr>
 <td>JRuby</td>
-<td style="text-align: right;">245.0</td>
-<td style="text-align: right;">1.66×</td>
+<td style="text-align: right;">275.0</td>
+<td style="text-align: right;">1.86×</td>
 </tr>
 <tr>
 <td>TruffleRuby</td>
-<td style="text-align: right;">1386.4</td>
-<td style="text-align: right;">9.37×</td>
+<td style="text-align: right;">871.9</td>
+<td style="text-align: right;">5.88×</td>
 </tr>
 </tbody>
 </table>
-<p>The one clear loss: <strong>1.20× MRI and 177.3 / 116.4 = 1.52× YJIT</strong>. MRI's
-<code>CGI.escapeHTML</code> is the C <code>escape_html</code> extension — a native table scan the Go
-<code>strings.NewReplacer</code> does not beat. This is the module's top optimization
-target (a byte-class table + single-pass builder would close it).</p>
+<p><strong>Flipped from loss to win.</strong> This was the module's one clear loss (1.20× MRI,
+1.52× YJIT) when <code>CGI.escapeHTML</code> was a <code>strings.NewReplacer</code>. Rewriting it as a
+<strong>256-entry <code>byte → entity</code> table</strong> driving a <strong>single-pass bulk-copy</strong> scanner —
+the same shape as MRI's C <code>escape_html</code> — now <strong>beats MRI (0.72×) and YJIT
+(107.3 / 116.0 = 0.93× YJIT)</strong>. The old <code>Replacer</code> made two internal passes (size,
+then fill); the table scan makes one, copies each safe run in bulk, and writes a
+zero-copy result. See the <a href="#the-html-escaper-rewrite-how-go-overtakes-the-c-extension">design note</a>.</p>
 <h4 id="unescapehtml-cgiunescapehtml-named-numeric-entity-decode">unescapeHTML — <code>CGI.unescapeHTML</code>, named + numeric entity decode<a class="headerlink" href="#unescapehtml-cgiunescapehtml-named-numeric-entity-decode" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -891,35 +914,94 @@ target (a byte-class table + single-pass builder would close it).</p>
 <tbody>
 <tr>
 <td><strong>go-ruby (pure Go)</strong></td>
-<td style="text-align: right;">242.4</td>
-<td style="text-align: right;">0.92×</td>
+<td style="text-align: right;">189.3</td>
+<td style="text-align: right;">0.74×</td>
 </tr>
 <tr>
 <td>MRI</td>
-<td style="text-align: right;">262.8</td>
+<td style="text-align: right;">256.6</td>
 <td style="text-align: right;">1.00×</td>
 </tr>
 <tr>
 <td>MRI + YJIT</td>
-<td style="text-align: right;">231.4</td>
-<td style="text-align: right;">0.88×</td>
+<td style="text-align: right;">222.2</td>
+<td style="text-align: right;">0.87×</td>
 </tr>
 <tr>
 <td>JRuby</td>
-<td style="text-align: right;">219.4</td>
+<td style="text-align: right;">211.8</td>
 <td style="text-align: right;">0.83×</td>
 </tr>
 <tr>
 <td>TruffleRuby</td>
-<td style="text-align: right;">2659.1</td>
-<td style="text-align: right;">10.12×</td>
+<td style="text-align: right;">1454.3</td>
+<td style="text-align: right;">5.67×</td>
 </tr>
 </tbody>
 </table>
-<p>A near-tie: the Go decoder <strong>beats MRI (0.92×)</strong> but sits <strong>just behind YJIT</strong>
-(242.4 / 231.4 = <strong>1.05× YJIT</strong>) and JRuby, which run the C <code>unescapeHTML</code> path.
-The gap is within run-to-run noise (~5%); a small tightening of the entity scan
-would flip it.</p>
+<p><strong>Was a near-tie, now a clear win.</strong> The old decoder allocated per entity
+(<code>string(rune(b))</code> plus a map lookup each) and copied verbatim text one byte at a
+time, leaving it just behind YJIT (1.05×). The rewrite jumps <code>&amp;</code>→<code>&amp;</code> with
+<code>IndexByte</code>, <strong>bulk-copies</strong> each verbatim run, resolves named entities to
+<strong>constant strings</strong>, and writes numeric entities' UTF-8 bytes <strong>straight into
+the buffer</strong> — no per-entity allocation. It now <strong>beats MRI (0.74×), YJIT
+(189.3 / 222.2 = 0.85× YJIT) and JRuby</strong>, all of which run the C <code>unescapeHTML</code>.</p>
+<h3 id="the-html-escaper-rewrite-how-go-overtakes-the-c-extension">The HTML-escaper rewrite — how Go overtakes the C extension<a class="headerlink" href="#the-html-escaper-rewrite-how-go-overtakes-the-c-extension" title="Permanent link">&para;</a></h3>
+<p>Both HTML ops used to lose to YJIT because MRI dispatches them to the
+<code>cgi/escape</code> <strong>C extension</strong> (<code>escape_html</code> / <code>unescapeHTML</code>), a tight native
+table scan. Matching it in pure Go — with no cgo — came down to two ideas the C
+code already uses, plus removing the allocations Go's convenience APIs hide.</p>
+<p><strong>escapeHTML — 256-entry table + one-pass bulk copy.</strong> The old code called
+<code>strings.NewReplacer("&amp;","&amp;amp;", …).Replace</code>, whose single-byte-key path makes
+<strong>two internal passes</strong> over the string (one to size the result, one to fill it)
+and dispatches through the <code>Replacer</code> interface. The rewrite is a byte-classified
+scan:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">// htmlEscapes[b] is the entity for b, or &quot;&quot; when b is copied verbatim.</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="c1">// Indexing a [256]string by a byte is bounds-check-free: one table load, no branch tree.</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kd">var</span><span class="w"> </span><span class="nx">htmlEscapes</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">256</span><span class="p">]</span><span class="kt">string</span><span class="p">{</span><span class="sc">&#39;&amp;&#39;</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&amp;amp;&quot;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;&lt;&#39;</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&amp;lt;&quot;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;&gt;&#39;</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&amp;gt;&quot;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;&quot;&#39;</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&amp;quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;\&#39;&#39;</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&amp;#39;&quot;</span><span class="p">}</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="kd">func</span><span class="w"> </span><span class="nx">EscapeHTML</span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">s</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">htmlEscapes</span><span class="p">[</span><span class="nx">s</span><span class="p">[</span><span class="nx">i</span><span class="p">]])</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// skip to first escapable byte</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">        </span><span class="nx">i</span><span class="o">++</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">s</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">s</span><span class="w"> </span><span class="c1">// nothing to escape: no allocation at all</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="nx">buf</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="nx">s</span><span class="p">))</span><span class="w"> </span><span class="c1">// one buffer; append grows it if a dense input needs more</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="nx">buf</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">buf</span><span class="p">,</span><span class="w"> </span><span class="nx">s</span><span class="p">[:</span><span class="nx">i</span><span class="p">]</span><span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="nx">last</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">i</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">s</span><span class="p">);</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">        </span><span class="nx">e</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">htmlEscapes</span><span class="p">[</span><span class="nx">s</span><span class="p">[</span><span class="nx">i</span><span class="p">]]</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">            </span><span class="k">continue</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">        </span><span class="nx">buf</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">buf</span><span class="p">,</span><span class="w"> </span><span class="nx">s</span><span class="p">[</span><span class="nx">last</span><span class="p">:</span><span class="nx">i</span><span class="p">]</span><span class="o">...</span><span class="p">)</span><span class="w"> </span><span class="c1">// bulk-copy the safe run</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">        </span><span class="nx">buf</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">buf</span><span class="p">,</span><span class="w"> </span><span class="nx">e</span><span class="o">...</span><span class="p">)</span><span class="w">         </span><span class="c1">// splice in the entity</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">        </span><span class="nx">last</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">    </span><span class="nx">buf</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">buf</span><span class="p">,</span><span class="w"> </span><span class="nx">s</span><span class="p">[</span><span class="nx">last</span><span class="p">:]</span><span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">unsafe</span><span class="p">.</span><span class="nx">String</span><span class="p">(</span><span class="nx">unsafe</span><span class="p">.</span><span class="nx">SliceData</span><span class="p">(</span><span class="nx">buf</span><span class="p">),</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">buf</span><span class="p">))</span><span class="w"> </span><span class="c1">// zero-copy, like strings.Builder</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="p">}</span>
+</code></pre></div>
+<p>One pass, safe runs copied in bulk (not byte-by-byte), a bounds-check-free table
+load per byte, and a zero-copy result — the <code>2×len</code> estimate keeps the common
+case to a single allocation while <code>append</code> still guarantees correctness on
+adversarial <code>"</code>-dense input. That took <code>escapeHTML</code> from <strong>1.52× to 0.93× YJIT.</strong></p>
+<p><strong>unescapeHTML — no per-entity allocation.</strong> The decode side already scanned
+<code>&amp;</code>→<code>&amp;</code> with <code>IndexByte</code>, but it copied verbatim text <strong>one byte at a time</strong> and,
+for every entity, allocated: named entities went through a <code>map[string]byte</code> then
+<code>string(rune(b))</code> (a fresh 1-byte string each), and numeric entities built a
+<code>string([]byte{…})</code>. The rewrite bulk-copies runs, resolves names with a
+<strong><code>switch</code> returning constant strings</strong>, and appends decoded bytes <strong>directly into
+the output buffer</strong> — zero allocations beyond the single result. That took
+<code>unescapeHTML</code> from <strong>1.05× to 0.85× YJIT.</strong></p>
+<p><strong>Why not SIMD here?</strong> A SWAR / <code>go-simd</code> byte-classify to find the next
+escapable byte was prototyped, but on the realistic short fragments these ops see
+(tens of bytes, escapable bytes never far apart) the vector setup cost exceeded
+the scalar table scan — it measured <strong>slower</strong>. The table-driven scalar path is
+the right tool at this input size; SIMD would only pay off on large, escapable-sparse
+documents, which is not this workload.</p>
 <div class="admonition note">
 <p class="admonition-title">Reproduce</p>
 <p>The harness is committed under
