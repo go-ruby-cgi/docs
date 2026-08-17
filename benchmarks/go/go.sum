@@ -1,2 +1,4 @@
 github.com/go-ruby-cgi/cgi v0.0.0-20260703201924-727a30114c2a h1:YDpw/ycI3myeu7rI4QCYvivhTKzkWBvNhJ+gxEiHa0s=
 github.com/go-ruby-cgi/cgi v0.0.0-20260703201924-727a30114c2a/go.mod h1:TAIxiFMAj68dWClzEmDY1vCSNFiPfupD3HRADRXrkZw=
+github.com/go-ruby-cgi/cgi v0.0.0-20260717062833-adf35051de76 h1:EpBN2SKNpUJQvOHxMTZtNvLsMoFkypc9HtlRi40F720=
+github.com/go-ruby-cgi/cgi v0.0.0-20260717062833-adf35051de76/go.mod h1:TAIxiFMAj68dWClzEmDY1vCSNFiPfupD3HRADRXrkZw=
