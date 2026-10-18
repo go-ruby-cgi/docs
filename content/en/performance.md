@@ -1,4 +1,9 @@
-# Performance
+---
+title: "Performance"
+weight: 50
+---
+
+# Performance {#performance}
 
 `go-ruby-cgi/cgi` is the pure-Go library that
 [`rbgo`](https://github.com/go-embedded-ruby/ruby) binds for Ruby's CGI utility
@@ -6,7 +11,7 @@ methods. This page describes the **comparative benchmark methodology** used to
 measure that module against the reference Ruby runtimes, part of the
 ecosystem-wide per-module parity suite.
 
-## What is measured
+## What is measured {#what-is-measured}
 
 The **same** Ruby script — a representative mix of `CGI.escape`, `CGI.unescapeHTML`
 and `CGI.parse` calls — is run under every runtime. `rbgo`'s number reflects
@@ -25,7 +30,7 @@ and its output is checked **byte-identical to MRI** before timing.
 - The benchmark script and harness live in rbgo's repo under
   [`bench/modules/`](https://github.com/go-embedded-ruby/ruby/tree/main/bench/modules).
 
-## Result (best of 5, ms)
+## Result (best of 5, ms) {#result-best-of-5-ms}
 
 | Runtime | time | vs MRI |
 | --- | ---: | ---: |
@@ -37,16 +42,19 @@ and its output is checked **byte-identical to MRI** before timing.
 
 rbgo runs on **go-ruby-cgi** at **parity with MRI** (1.00x) on this HTML/URL escape+unescape workload; both ultimately call native escaping. TruffleRuby pays heavy cold warm-up here (1950 ms).
 
-!!! note "Honest framing"
-    JRuby and TruffleRuby are timed **cold, single-shot**, so they carry JVM /
-    Graal startup on every run — read them as one-shot `ruby file.rb` costs, the
-    same way `rbgo` and MRI are measured, not as steady-state JIT numbers. Rows
-    that complete in well under ~200 ms carry the most relative noise; treat
-    their ratios as order-of-magnitude. These are **real measured numbers** from
-    the 2026-06-30 run (Apple M-series; `ruby 4.0.5 +PRISM`, `jruby 10.1.0.0`,
-    `truffleruby 34.0.1`) — nothing is fabricated or cherry-picked.
+{{< callout type="info" >}}
+**Honest framing**
 
-## Library-level benchmark (Go API vs runtimes) — 2026-07-03
+JRuby and TruffleRuby are timed **cold, single-shot**, so they carry JVM /
+Graal startup on every run — read them as one-shot `ruby file.rb` costs, the
+same way `rbgo` and MRI are measured, not as steady-state JIT numbers. Rows
+that complete in well under ~200 ms carry the most relative noise; treat
+their ratios as order-of-magnitude. These are **real measured numbers** from
+the 2026-06-30 run (Apple M-series; `ruby 4.0.5 +PRISM`, `jruby 10.1.0.0`,
+`truffleruby 34.0.1`) — nothing is fabricated or cherry-picked.
+{{< /callout >}}
+
+## Library-level benchmark (Go API vs runtimes) — 2026-07-03 {#library-level-benchmark-go-api-vs-runtimes-2026-07-03}
 
 This section measures the **pure-Go library directly, through its Go API** — not
 the `rbgo` interpreter path recorded above. It isolates the library primitive
@@ -80,7 +88,7 @@ scanners** that mirror the C path flipped both: `escapeHTML` went from 1.52× to
 [HTML-escaper design](#the-html-escaper-rewrite-how-go-overtakes-the-c-extension)
 below for how.
 
-#### parse — `CGI.parse`, query string → `{key => [values]}`
+#### parse — `CGI.parse`, query string → `{key => [values]}` {#parse-cgiparse-query-string-key-values}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -96,7 +104,7 @@ JRuby 10.1 removed `CGI.parse` from its stdlib (it now directs callers to the
 `cgi` gem), so JRuby has no row here — the harness omits it rather than
 substitute a non-stdlib implementation.
 
-#### escape — `CGI.escape`, form-URL encoding
+#### escape — `CGI.escape`, form-URL encoding {#escape-cgiescape-form-url-encoding}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -110,7 +118,7 @@ Percent-encoding **beats MRI (0.56×) and YJIT (244.4 / 398.2 = 0.61× YJIT)**. 
 lone TruffleRuby outlier (26 µs) is a cold-JIT artifact on this short loop — read
 it as order-of-magnitude, per the warm-up caveat below.
 
-#### unescape — `CGI.unescape`, form-URL decoding
+#### unescape — `CGI.unescape`, form-URL decoding {#unescape-cgiunescape-form-url-decoding}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -123,7 +131,7 @@ it as order-of-magnitude, per the warm-up caveat below.
 Decoding **beats MRI (0.27×) and YJIT (132.4 / 457.8 = 0.29× YJIT)** — roughly 3.5×
 faster than both.
 
-#### escapeHTML — `CGI.escapeHTML`, five-character entity escape
+#### escapeHTML — `CGI.escapeHTML`, five-character entity escape {#escapehtml-cgiescapehtml-five-character-entity-escape}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -141,7 +149,7 @@ the same shape as MRI's C `escape_html` — now **beats MRI (0.72×) and YJIT
 then fill); the table scan makes one, copies each safe run in bulk, and writes a
 zero-copy result. See the [design note](#the-html-escaper-rewrite-how-go-overtakes-the-c-extension).
 
-#### unescapeHTML — `CGI.unescapeHTML`, named + numeric entity decode
+#### unescapeHTML — `CGI.unescapeHTML`, named + numeric entity decode {#unescapehtml-cgiunescapehtml-named-numeric-entity-decode}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -159,7 +167,7 @@ time, leaving it just behind YJIT (1.05×). The rewrite jumps `&`→`&` with
 the buffer** — no per-entity allocation. It now **beats MRI (0.74×), YJIT
 (189.3 / 222.2 = 0.85× YJIT) and JRuby**, all of which run the C `unescapeHTML`.
 
-### The HTML-escaper rewrite — how Go overtakes the C extension
+### The HTML-escaper rewrite — how Go overtakes the C extension {#the-html-escaper-rewrite-how-go-overtakes-the-c-extension}
 
 Both HTML ops used to lose to YJIT because MRI dispatches them to the
 `cgi/escape` **C extension** (`escape_html` / `unescapeHTML`), a tight native
@@ -223,22 +231,28 @@ the scalar table scan — it measured **slower**. The table-driven scalar path i
 the right tool at this input size; SIMD would only pay off on large, escapable-sparse
 documents, which is not this workload.
 
-!!! note "Reproduce"
-    The harness is committed under
-    [`benchmarks/`](https://github.com/go-ruby-cgi/docs/tree/main/benchmarks): a
-    self-contained Go driver (`go/`, pins the published library via `go.mod`
-    pseudo-version — no `replace`), the equivalent `ruby/cgi.rb` workload, and
-    `run.sh` (which first verifies Go output is byte-identical to MRI, then times
-    every runtime). Run `bash benchmarks/run.sh`; env `OUTER`/`WARM` tune the
-    pass budget and `RUBY`/`JRUBY`/`TRUFFLERUBY` select the runtime binaries.
+{{< callout type="info" >}}
+**Reproduce**
 
-!!! warning "Warm-up budget & noise — honest framing"
-    Numbers reflect a **fixed warm-process budget** (3 warm-up + 25 timed passes
-    in one process). The JVM/GraalVM JITs (JRuby, TruffleRuby) may need a larger
-    warm-up to reach steady state, so their columns can **understate** peak
-    throughput — most visibly TruffleRuby on the shortest loops (the `escape`
-    row's 26 µs is one such cold-JIT outlier). Sub-microsecond rows carry the most
-    relative noise; treat those ratios as order-of-magnitude. Every number here is
-    a **real measured value** from the dated run above — nothing is fabricated,
-    estimated, or cherry-picked. The go-ruby column is the pure-Go library; every
-    other column is that interpreter's own stdlib doing the equivalent work.
+The harness is committed under
+[`benchmarks/`](https://github.com/go-ruby-cgi/docs/tree/main/benchmarks): a
+self-contained Go driver (`go/`, pins the published library via `go.mod`
+pseudo-version — no `replace`), the equivalent `ruby/cgi.rb` workload, and
+`run.sh` (which first verifies Go output is byte-identical to MRI, then times
+every runtime). Run `bash benchmarks/run.sh`; env `OUTER`/`WARM` tune the
+pass budget and `RUBY`/`JRUBY`/`TRUFFLERUBY` select the runtime binaries.
+{{< /callout >}}
+
+{{< callout type="warning" >}}
+**Warm-up budget & noise — honest framing**
+
+Numbers reflect a **fixed warm-process budget** (3 warm-up + 25 timed passes
+in one process). The JVM/GraalVM JITs (JRuby, TruffleRuby) may need a larger
+warm-up to reach steady state, so their columns can **understate** peak
+throughput — most visibly TruffleRuby on the shortest loops (the `escape`
+row's 26 µs is one such cold-JIT outlier). Sub-microsecond rows carry the most
+relative noise; treat those ratios as order-of-magnitude. Every number here is
+a **real measured value** from the dated run above — nothing is fabricated,
+estimated, or cherry-picked. The go-ruby column is the pure-Go library; every
+other column is that interpreter's own stdlib doing the equivalent work.
+{{< /callout >}}

@@ -1,18 +1,26 @@
-# Usage & API
+---
+title: "Usage & API"
+weight: 30
+---
+
+# Usage & API {#usage-api}
 
 The public API lives at the module root (`github.com/go-ruby-cgi/cgi`). It is **Ruby-shaped but Go-idiomatic**: `Escape` / `Unescape` / `ParseQuery` mirror `CGI.escape` / `CGI.unescape` / `CGI.parse`, while the surface follows Go conventions — plain `string` and `map[string][]string` values, no global state.
 
-!!! success "Status: implemented"
-    The library is built and importable as `github.com/go-ruby-cgi/cgi`, bound into
-    `rbgo` as a native module; see [Roadmap](roadmap.md).
+{{< callout type="info" >}}
+**Status: implemented**
 
-## Install
+The library is built and importable as `github.com/go-ruby-cgi/cgi`, bound into
+`rbgo` as a native module; see [Roadmap]({{< relref "roadmap.md" >}}).
+{{< /callout >}}
+
+## Install {#install}
 
 ```sh
 go get github.com/go-ruby-cgi/cgi
 ```
 
-## Worked example
+## Worked example {#worked-example}
 
 ```go
 package main
@@ -33,7 +41,7 @@ func main() {
 }
 ```
 
-## Shape
+## Shape {#shape}
 
 ```go
 // Form (application/x-www-form-urlencoded) encoding — CGI.escape / CGI.unescape.
@@ -56,7 +64,7 @@ func UnescapeElement(s string, elements ...string) string
 func ParseQuery(query string) map[string][]string
 ```
 
-## Behaviour notes
+## Behaviour notes {#behaviour-notes}
 
 - **`Escape` / `Unescape`** — `application/x-www-form-urlencoded`: every byte
   outside the unreserved set `A–Z a–z 0–9 - . _ ~` is percent-encoded (uppercase
@@ -75,7 +83,7 @@ func ParseQuery(query string) map[string][]string
 - **`ParseQuery`** — `CGI.parse`: split on `&` and `;`, form-decode keys and
   values, accumulate repeated keys, and return an empty slice for a bare key.
 
-## MRI conformance
+## MRI conformance {#mri-conformance}
 
 Correctness is defined by reference Ruby. A **differential oracle** runs a corpus
 through both the system `ruby` (`CGI.escape`, `CGI.unescapeHTML`, `CGI.parse`, …)
@@ -84,7 +92,7 @@ from memory. The oracle tests skip themselves where `ruby` is not on `PATH` (e.g
 the qemu arch lanes), and where the `cgi` gem is not installed for the
 `CGI.parse` case, so the cross-arch builds still validate the library.
 
-## Relationship to Ruby
+## Relationship to Ruby {#relationship-to-ruby}
 
 `go-ruby-cgi/cgi` is **standalone and reusable**, and is the CGI backend bound into
 [go-embedded-ruby](https://github.com/go-embedded-ruby/ruby) by `rbgo` as a native
