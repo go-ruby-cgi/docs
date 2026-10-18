@@ -1,4 +1,9 @@
-# Why pure Go
+---
+title: "Why pure Go"
+weight: 20
+---
+
+# Why pure Go {#why-pure-go}
 
 `go-ruby-cgi/cgi` reimplements Ruby's CGI escaping and query-parsing methods in **pure Go,
 with cgo disabled**. The slice of Ruby it covers is **deterministic and
@@ -8,7 +13,7 @@ of it, with no live binding and no evaluation of arbitrary Ruby. That is exactly
 the part that can — and should — live as a standalone Go library, separate from the
 interpreter.
 
-## What it is — and isn't
+## What it is — and isn't {#what-it-is-and-isnt}
 
 URL/form escaping, HTML-entity coding and query parsing are pure, deterministic
 string transforms that need **no interpreter**, so they live here as pure Go. The
@@ -23,7 +28,7 @@ this library is the compute core only.
 separate `cgi` gem. This package provides all of them (`ParseQuery` for
 `CGI.parse`).
 
-## Extracted from rbgo, reusable by anyone
+## Extracted from rbgo, reusable by anyone {#extracted-from-rbgo-reusable-by-anyone}
 
 This library began life inside [go-embedded-ruby](https://github.com/go-embedded-ruby/ruby)'s
 `rbgo`. It has been **extracted into a reusable standalone library** so that:
@@ -37,7 +42,7 @@ This library began life inside [go-embedded-ruby](https://github.com/go-embedded
 - the behaviour is pinned by a **differential oracle** against the system
   `ruby`, independent of any one consumer.
 
-## Why pure Go matters here
+## Why pure Go matters here {#why-pure-go-matters-here}
 
 Because the library is CGO-free and dependency-free, it:
 
@@ -48,5 +53,5 @@ Because the library is CGO-free and dependency-free, it:
   `PATH`, while the cross-arch lanes (where `ruby` is absent) still validate the
   library itself.
 
-See [Usage & API](api.md) for the surface and [Roadmap](roadmap.md) for what is
+See [Usage & API]({{< relref "api.md" >}}) for the surface and [Roadmap]({{< relref "roadmap.md" >}}) for what is
 in scope.
